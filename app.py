@@ -1,95 +1,97 @@
 import streamlit as st
 import cv2
 import numpy as np
-import pandas as pd
 import plotly.graph_objects as go
-import networkx as nx
-import sqlite3
 import time
-import os
 from datetime import datetime
+import random
 
 # ==========================================
-# ENISA | v5.1 THE LEGION BUILD (PATCHED)
+# ENISA | v5.2 ELITE OVERWATCH
 # ==========================================
 
 st.set_page_config(layout="wide", page_title="ENISA | LEGION", page_icon="👤")
 
-# --- 1. THE ANONYMOUS CSS OVERRIDE ---
+# --- 1. THE ULTIMATE SHADOW CSS ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;500;700&display=swap');
-    html, body, [class*="css"] { 
-        background-color: #000000; 
-        color: #00FF41; 
-        font-family: 'Fira Code', monospace;
-    }
-    .stMetric { border: 1px solid #00FF41; background: rgba(0, 255, 65, 0.05); padding: 15px; border-radius: 5px; }
-    .stButton>button { 
-        background-color: #000; border: 1px solid #00FF41; color: #00FF41;
-        font-weight: bold; width: 100%; transition: 0.5s; text-transform: uppercase;
-    }
-    .stButton>button:hover { background-color: #00FF41; color: #000; box-shadow: 0 0 25px #00FF41; }
-    h1, h2, h3 { color: #FFF; text-shadow: 0 0 10px #00FF41; text-transform: uppercase; letter-spacing: 5px; }
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;700&display=swap');
+    
+    /* FORCE GLOBAL DARK MODE */
+    .main, .stApp { background-color: #000000 !important; color: #00FF41 !important; font-family: 'JetBrains Mono', monospace; }
+    
+    /* THE SUIT ICON STYLING */
+    .anon-logo { font-size: 150px; text-align: center; color: #FFF; text-shadow: 0 0 20px #00FF41; margin-top: 50px; }
+    
+    /* NEWS TICKER ANIMATION */
+    .ticker-wrap { width: 100%; overflow: hidden; background: #050505; border: 1px solid #333; padding: 10px; margin-bottom: 20px; }
+    .ticker { white-space: nowrap; animation: ticker 30s linear infinite; font-weight: bold; color: #00FF41; }
+    @keyframes ticker { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+    
+    .stTabs [data-baseweb="tab-list"] { background-color: #000; border-bottom: 1px solid #00FF41; }
+    .stTabs [data-baseweb="tab"] { color: #888; }
+    .stTabs [data-baseweb="tab"]:hover { color: #00FF41; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. INITIALIZATION ---
+# --- 2. AUTHENTICATION ---
 if "auth" not in st.session_state: st.session_state.auth = False
 
-# --- 3. THE LOCK SCREEN ---
 if not st.session_state.auth:
+    st.markdown('<div class="anon-logo">👤</div>', unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center;'>ANONYMOUS</h1>", unsafe_allow_html=True)
+    
     _, col_b, _ = st.columns([1, 2, 1])
     with col_b:
-        st.markdown("<br><br><h1 style='text-align: center; font-size: 10em; margin-bottom:0;'>👤</h1>", unsafe_allow_html=True)
-        st.markdown("<h2 style='text-align: center;'>ANONYMOUS</h2>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; color: #888;'>WE ARE LEGION. EXPECT US.</p>", unsafe_allow_html=True)
-        
-        with st.form("auth_gate"):
-            pwd = st.text_input("ENTER SYSTEM KEY", type="password")
-            if st.form_submit_button("INITIALIZE UPLINK"):
+        with st.form("auth"):
+            pwd = st.text_input("DIRECTOR KEYCODE", type="password")
+            if st.form_submit_button("AUTHORIZE"):
                 if pwd == "ENISA-ZERO":
                     st.session_state.auth = True
                     st.rerun()
-                else: st.error("ACCESS DENIED.")
     st.stop()
 
-# --- 4. MAIN INTERFACE ---
-st.title("ENISA COMMAND | LEGION v5.1")
-st.markdown("<hr style='border: 0.5px solid #00FF41;'>", unsafe_allow_html=True)
+# --- 3. LIVE INTEL TICKER (NEW) ---
+news_items = [
+    "--- [INTEL] Rerouting traffic through Node-77 ---",
+    "--- [ALERT] Cyber-threat detected in Eastern Europe sector ---",
+    "--- [SIGINT] Encrypted comms intercepted from Target-Delta ---",
+    "--- [SYSTEM] All Blue-Force nodes secured ---",
+    "--- [WARGAME] Simulation 14-B active ---"
+]
+st.markdown(f'<div class="ticker-wrap"><div class="ticker">{" ".join(news_items)}</div></div>', unsafe_allow_html=True)
 
-tab1, tab2, tab3 = st.tabs(["[ THEATER OVERWATCH ]", "[ KNOWLEDGE GRAPH ]", "[ SENTINEL SHIELD ]"])
+# --- 4. THEATER INTERFACE ---
+st.title("ENISA COMMAND | OVERWATCH")
+
+tab1, tab2 = st.tabs(["GLOBAL INTEL", "SENTINEL EYE"])
 
 with tab1:
-    col_map, col_eye = st.columns([1, 1])
-    with col_map:
-        st.markdown("### 🌍 GLOBAL THREAT THEATER")
-        fig = go.Figure(go.Scattergeo(lat=[9.03], lon=[38.7], mode='markers', marker=dict(size=15, color='#00FF41')))
-        fig.update_layout(geo=dict(projection_type="orthographic", bgcolor="#000", showland=True, landcolor="#111"),
-                          margin=dict(l=0,r=0,t=0,b=0), height=400, paper_bgcolor="#000")
-        st.plotly_chart(fig, use_container_width=True)
-
-    with col_eye:
-        st.markdown("### 👁️ SENTINEL EYE (CCTV)")
-        cam_url = st.text_input("RTSP URL (Enter 0 for Webcam)", value="0", type="password")
-        run_cam = st.checkbox("ACTIVATE UPLINK")
-        frame_window = st.empty()
-        
-        if run_cam:
-            target = int(cam_url) if cam_url == "0" else cam_url
-            cap = cv2.VideoCapture(target)
-            while run_cam:
-                ret, frame = cap.read()
-                if not ret: break
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                frame_window.image(frame, use_container_width=True)
-                time.sleep(0.1)
-            cap.release()
+    # DYNAMIC THREAT MAP
+    st.markdown("### 🌍 GLOBAL THREAT VECTORS")
+    # Generating 5 random threat locations
+    lats = [9.03, 55.75, 35.67, 39.9, -23.55]
+    lons = [38.74, 37.61, 139.65, 116.4, -46.63]
+    colors = ['#00FF41', '#FF003C', '#FF003C', '#FF003C', '#00FF41']
+    
+    fig = go.Figure(go.Scattergeo(lat=lats, lon=lons, mode='markers', 
+                                  marker=dict(size=12, color=colors, symbol='x')))
+    fig.update_layout(geo=dict(projection_type="orthographic", bgcolor="#000", showland=True, landcolor="#050505"),
+                      margin=dict(l=0,r=0,t=0,b=0), paper_bgcolor="#000")
+    st.plotly_chart(fig, use_container_width=True)
 
 with tab2:
-    st.markdown("### 🕸️ KNOWLEDGE GRAPH")
-    st.info("System is mapping entity relationships...")
-
-with tab3:
-    st.markdown("### 🛡️ SENTINEL SHIELD")
-    st.metric("VULNERABILITY SCORE", "9.2", "CRITICAL", delta_color="inverse")
+    st.markdown("### 👁️ SENTINEL EYE")
+    cam_url = st.text_input("RTSP LINK", value="0", type="password")
+    run_cam = st.checkbox("UPLINK ACTIVE")
+    frame_window = st.empty()
+    
+    if run_cam:
+        cap = cv2.VideoCapture(int(cam_url) if cam_url == "0" else cam_url)
+        while run_cam:
+            ret, frame = cap.read()
+            if not ret: break
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame_window.image(frame, use_container_width=True)
+            time.sleep(0.01)
+        cap.release()
